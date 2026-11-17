@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarecut — Turn long videos into viral shorts, right on your phone</title>
+<meta name="description" content="Jarecut is an on-device AI clip editor for Android. Auto-cut silence, offline captions, speaker face tracking, auto B-roll, music and hook SFX. Export up to 4K 60 fps. Free APK download.">
+<meta name="theme-color" content="#050505">
+<meta property="og:title" content="Jarecut — Long video in. Viral clips out.">
+<meta property="og:description" content="On-device AI editor for Android: silence cuts, offline captions, face tracking, B-roll, music & SFX. Your video never leaves the phone.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/logo.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/logo.svg">
+<style>
+@font-face{font-family:"Montserrat";src:url(assets/fonts/montserrat.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Anton";src:url(assets/fonts/anton.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Bangers";src:url(assets/fonts/bangers.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Bebas Neue";src:url(assets/fonts/bebas.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Poppins";src:url(assets/fonts/poppins_black.woff2) format("woff2");font-weight:900;font-display:swap}
+@font-face{font-family:"Luckiest Guy";src:url(assets/fonts/luckiest.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Permanent Marker";src:url(assets/fonts/marker.woff2) format("woff2");font-display:swap}
+
+:root{
+  --bg:#050505; --bg2:#0c0c0d; --card:#111113; --card2:#161618;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+  --fg:#f4f4f2; --mute:#9a9a9f; --dim:#5f5f66;
+  --acc:#e4ff3a; --acc-ink:#0b0d00;
+  --blue:#3d7bff; --green:#29e07a; --gold:#ffc53d; --pink:#ff3d8b;
+  --r:22px; --display:"Anton","Bebas Neue",Impact,sans-serif;
+  --sans:"Montserrat",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.55;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+img,svg{display:block}
+::selection{background:var(--acc);color:var(--acc-ink)}
+.wrap{width:min(1180px,100% - 40px);margin-inline:auto}
+.kicker{display:inline-flex;align-items:center;gap:10px;font-size:12px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--mute)}
+.kicker::before{content:"";width:18px;height:2px;background:var(--acc)}
+h1,h2,h3{font-weight:800;letter-spacing:-.02em;line-height:1.05}
+h2{font-size:clamp(34px,5vw,60px);font-family:var(--display);font-weight:400;letter-spacing:.005em;text-transform:uppercase;line-height:.98}
+.lead{color:var(--mute);font-size:clamp(16px,1.6vw,19px);max-width:56ch}
+.acc{color:var(--acc)}
+
+/* grain + grid backdrop */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:.05;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.grid-bg{position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:radial-gradient(ellipse 70% 60% at 50% 30%,#000 30%,transparent 75%)}
+
+/* buttons */
+.btn{--h:54px;display:inline-flex;align-items:center;justify-content:center;gap:12px;height:var(--h);padding:0 26px;border-radius:999px;font-weight:700;font-size:15px;border:1px solid var(--line2);background:rgba(255,255,255,.03);transition:transform .2s,background .2s,box-shadow .2s,border-color .2s;cursor:pointer;color:var(--fg);font-family:inherit;white-space:nowrap}
+.btn:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3)}
+.btn-acc{background:var(--acc);color:var(--acc-ink);border-color:transparent;box-shadow:0 0 0 0 rgba(228,255,58,.5),0 10px 40px -10px rgba(228,255,58,.55)}
+.btn-acc:hover{background:#efff7a;box-shadow:0 0 0 6px rgba(228,255,58,.15),0 16px 50px -10px rgba(228,255,58,.7)}
+.btn-big{--h:64px;font-size:16px;padding:0 30px 0 22px}
+.btn .ic{width:34px;height:34px;border-radius:50%;background:var(--acc-ink);color:var(--acc);display:grid;place-items:center;flex:none}
+.btn small{display:block;font-size:11px;font-weight:600;opacity:.7;letter-spacing:.02em;margin-top:-2px}
+.btn .stack{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+
+/* nav */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:background .3s,border-color .3s,backdrop-filter .3s;border-bottom:1px solid transparent}
+.nav.scrolled{background:rgba(5,5,5,.72);backdrop-filter:blur(18px) saturate(1.4);-webkit-backdrop-filter:blur(18px) saturate(1.4);border-color:var(--line)}
+.nav .wrap{display:flex;align-items:center;justify-content:space-between;height:72px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+.brand img{width:34px;height:34px;border-radius:9px;box-shadow:0 0 0 1px var(--line2)}
+.nav-links{display:flex;gap:32px;font-size:14px;font-weight:600;color:var(--mute)}
+.nav-links a:hover{color:var(--fg)}
+.nav .btn{--h:42px;padding:0 18px;font-size:14px}
+@media(max-width:860px){.nav-links{display:none}}
+
+/* hero */
+.hero{position:relative;padding:140px 0 80px;overflow:hidden}
+.hero .glow{position:absolute;width:900px;height:900px;left:62%;top:-260px;transform:translateX(-50%);background:radial-gradient(circle,rgba(228,255,58,.16),transparent 60%);filter:blur(20px);pointer-events:none}
+.hero-grid{position:relative;display:grid;grid-template-columns:1.15fr .85fr;gap:40px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:10px;padding:7px 14px 7px 8px;border-radius:999px;border:1px solid var(--line2);background:rgba(255,255,255,.03);font-size:13px;font-weight:600;color:var(--mute)}
+.pill b{background:var(--acc);color:var(--acc-ink);font-size:11px;padding:3px 9px;border-radius:999px;letter-spacing:.06em}
+.hero h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(50px,7.4vw,112px);line-height:1;letter-spacing:.005em;margin:26px 0 24px}
+.hero h1 .line{display:block;white-space:nowrap}
+.hero h1 .line:nth-child(2){margin:.04em 0}
+.hero h1 .out{color:transparent;-webkit-text-stroke:2px var(--fg)}
+.hero h1 .hl{position:relative;color:var(--acc-ink);padding:0 .12em;margin-left:-.04em;z-index:0}
+.hero h1 .hl::before{content:"";position:absolute;inset:.1em -.02em .04em;background:var(--acc);z-index:-1;transform:skew(-6deg) scaleX(0);transform-origin:left;animation:swipe .7s .5s cubic-bezier(.7,0,.2,1) forwards}
+@keyframes swipe{to{transform:skew(-6deg) scaleX(1)}}
+.hero .lead{margin-bottom:34px}
+.cta-row{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;margin-top:26px;font-size:13px;color:var(--mute);font-weight:600}
+.meta span{display:inline-flex;align-items:center;gap:8px}
+.meta svg{color:var(--acc)}
+.os-hint{margin-top:14px;font-size:13px;color:var(--dim);display:none}
+.os-hint.show{display:block}
+
+/* phone */
+.phone-stage{position:relative;display:flex;justify-content:center;perspective:1400px}
+.phone{position:relative;width:min(320px,78vw);aspect-ratio:9/19.3;border-radius:46px;padding:11px;background:linear-gradient(145deg,#2a2a2e,#0b0b0c 40%,#1d1d20);box-shadow:0 0 0 1px rgba(255,255,255,.08),0 50px 120px -30px rgba(0,0,0,.9),0 0 120px -20px rgba(228,255,58,.25);transform:rotateY(-12deg) rotateX(4deg);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.phone:hover{transform:rotateY(-4deg) rotateX(2deg)}
+.screen{position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;background:#0a0a0a}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:84px;height:24px;background:#000;border-radius:20px;z-index:9}
+/* fake video scene */
+.scene{position:absolute;inset:0;background:
+  radial-gradient(60% 40% at 80% 18%,rgba(255,140,60,.55),transparent 70%),
+  radial-gradient(70% 50% at 10% 90%,rgba(61,123,255,.35),transparent 70%),
+  linear-gradient(180deg,#1a1410,#0d0b0a 60%,#060606)}
+.scene .shelf{position:absolute;left:8%;right:8%;top:20%;height:3px;background:rgba(255,255,255,.08);box-shadow:0 44px 0 rgba(255,255,255,.06)}
+.scene .lamp{position:absolute;right:16%;top:12%;width:46px;height:46px;border-radius:50%;background:radial-gradient(circle,#ffd7a1,#ff9b45 45%,transparent 70%);filter:blur(2px);animation:flick 4s infinite}
+@keyframes flick{50%{opacity:.85}}
+.person{position:absolute;left:50%;bottom:0;width:140%;transform:translateX(-50%);animation:sway 6s ease-in-out infinite}
+@keyframes sway{50%{transform:translateX(-48%) rotate(.6deg)}}
+.mic{position:absolute;left:6%;bottom:30%;width:14%;height:16%}
+.facebox{position:absolute;left:25%;top:37%;width:50%;height:31%;animation:track 6s ease-in-out infinite}
+.facebox i{position:absolute;width:14px;height:14px;border:2px solid var(--acc)}
+.facebox i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0}
+.facebox i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0}
+.facebox i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0}
+.facebox i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
+.facebox span{position:absolute;top:-22px;left:0;font-size:9px;font-weight:800;letter-spacing:.08em;background:var(--acc);color:var(--acc-ink);padding:2px 6px;border-radius:4px;white-space:nowrap}
+@keyframes track{50%{transform:translate(2%,-1%)}}
+.hook{position:absolute;top:13%;left:50%;transform:translateX(-50%) rotate(-2deg);background:#fff;color:#000;font-family:"Poppins",sans-serif;font-weight:900;font-size:15px;padding:6px 12px;border-radius:6px;white-space:nowrap;box-shadow:4px 4px 0 var(--acc);z-index:4}
+.caption{position:absolute;left:6%;right:6%;bottom:11%;text-align:center;font-family:var(--display);text-transform:uppercase;font-size:31px;line-height:1.05;letter-spacing:.01em;z-index:4;min-height:70px}
+.caption .w{display:inline-block;margin:0 .12em;color:#fff;-webkit-text-stroke:1.2px #000;paint-order:stroke fill;text-shadow:0 3px 0 rgba(0,0,0,.6);opacity:0;transform:translateY(10px) scale(.9);transition:opacity .18s,transform .25s cubic-bezier(.3,1.6,.5,1),color .15s}
+.caption .w.in{opacity:1;transform:none}
+.caption .w.on{color:var(--acc);transform:scale(1.14)}
+.handle{position:absolute;bottom:8%;left:0;right:0;text-align:center;font-size:10px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.75);z-index:4}
+.ui-top{position:absolute;top:44px;left:14px;right:14px;display:flex;justify-content:space-between;z-index:5;font-size:9px;font-weight:800;letter-spacing:.1em}
+.ui-top .rec{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.5);padding:4px 8px;border-radius:99px;backdrop-filter:blur(6px)}
+.ui-top .rec::before{content:"";width:6px;height:6px;border-radius:50%;background:#ff3b3b;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.2}}
+.ui-top .res{background:rgba(0,0,0,.5);padding:4px 8px;border-radius:99px}
+.progress{position:absolute;left:14px;right:14px;bottom:6%;height:3px;background:rgba(255,255,255,.18);border-radius:3px;z-index:5;overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:var(--acc);animation:prog 12s linear infinite}
+@keyframes prog{to{width:100%}}
+.fx-flash{position:absolute;inset:0;background:#fff;opacity:0;z-index:6;pointer-events:none}
+.fx-flash.go{animation:flash .45s ease-out}
+@keyframes flash{10%{opacity:.85}100%{opacity:0}}
+
+.float{position:absolute;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 14px 10px 10px;border-radius:16px;background:rgba(20,20,22,.82);border:1px solid var(--line2);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:12.5px;font-weight:700;box-shadow:0 20px 50px -20px #000;white-space:nowrap;animation:bob 6s ease-in-out infinite}
+.float small{display:block;font-size:11px;font-weight:600;color:var(--mute)}
+.float .dot{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none}
+.f1{left:-4%;top:16%}.f2{right:-6%;top:44%;animation-delay:-2s}.f3{left:2%;bottom:12%;animation-delay:-4s}
+@keyframes bob{50%{transform:translateY(-10px)}}
+@media(max-width:960px){
+  .hero-grid{grid-template-columns:1fr;text-align:left}
+  .phone{transform:none}.phone-stage{margin-top:30px}
+  .f1{left:0}.f2{right:0}.f3{left:0}
+}
+
+/* marquee */
+.marquee{border-block:1px solid var(--line);padding:26px 0;overflow:hidden;position:relative;background:var(--bg2)}
+.marquee::before,.marquee::after{content:"";position:absolute;top:0;bottom:0;width:120px;z-index:2;pointer-events:none}
+.marquee::before{left:0;background:linear-gradient(90deg,var(--bg2),transparent)}
+.marquee::after{right:0;background:linear-gradient(-90deg,var(--bg2),transparent)}
+.track{display:flex;gap:56px;width:max-content;animation:scroll 40s linear infinite;align-items:center}
+.marquee:hover .track{animation-play-state:paused}
+@keyframes scroll{to{transform:translateX(-50%)}}
+.cs{font-size:30px;white-space:nowrap;line-height:1;text-transform:uppercase}
+.cs-glow{font-family:"Poppins";font-weight:900;color:#fff;text-shadow:0 0 12px #c38bff,0 0 30px #9d4dff}
+.cs-pop{font-family:"Poppins";font-weight:900;color:var(--acc);-webkit-text-stroke:1.5px #000;paint-order:stroke fill;text-shadow:3px 3px 0 #000}
+.cs-bluebox{font-family:"Anton";color:#fff}.cs-bluebox b{font-weight:400;background:var(--blue);padding:0 .2em;border-radius:6px}
+.cs-comic{font-family:"Bangers";letter-spacing:.04em;color:#ffe14a;text-shadow:2px 2px 0 #e8322b,4px 4px 0 #000}
+.cs-blackbox{font-family:"Montserrat";font-weight:900;color:#fff;background:#000;border:1px solid var(--line2);padding:6px 12px;border-radius:8px;font-size:24px}
+.cs-gold{font-family:"Anton";color:#ffd66b;text-shadow:0 0 14px rgba(255,197,61,.8)}
+.cs-greenbox{font-family:"Luckiest Guy";color:#fff}.cs-greenbox b{font-weight:400;background:var(--green);color:#03170b;padding:.08em .22em 0;border-radius:6px}
+.cs-classic{font-family:"Montserrat";font-weight:800;color:#fff;text-transform:none;font-size:26px}
+.cs-grad{font-family:"Anton";background:linear-gradient(90deg,#ff3d8b,#ffc53d,#e4ff3a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cs-hl{font-family:"Bebas Neue";color:#fff;font-size:36px}.cs-hl b{font-weight:400;color:var(--acc)}
+.cs-marker{font-family:"Permanent Marker";color:#fff;text-transform:none}
+.cs-blueglow{font-family:"Anton";color:#d8e6ff;text-shadow:0 0 14px #3d7bff,0 0 30px #3d7bff}
+.cs-sep{width:8px;height:8px;background:var(--dim);transform:rotate(45deg);flex:none}
+
+/* sections */
+section{position:relative}
+.sec{padding:120px 0}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;margin-bottom:56px;flex-wrap:wrap}
+.sec-head h2{margin-top:16px;max-width:14ch}
+.sec-head .lead{max-width:44ch}
+
+/* bento */
+.bento{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.card{min-width:0;display:flex;flex-direction:column;align-items:flex-start;position:relative;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:28px;overflow:hidden;transition:border-color .3s,transform .3s}
+.card:hover{border-color:var(--line2)}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(400px circle at var(--mx,50%) var(--my,0%),rgba(228,255,58,.07),transparent 50%);opacity:0;transition:opacity .3s}
+.card:hover::after{opacity:1}
+.card h3{font-size:22px;margin:16px 0 8px}
+.card p{color:var(--mute);font-size:15px;margin-bottom:24px}
+.tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--acc);background:rgba(228,255,58,.08);border:1px solid rgba(228,255,58,.18);padding:5px 10px;border-radius:99px}
+.c-3{grid-column:span 3}.c-2{grid-column:span 2}.c-4{grid-column:span 4}.c-6{grid-column:span 6}
+@media(max-width:960px){.bento{grid-template-columns:1fr 1fr}.c-3,.c-2,.c-4{grid-column:span 2}.c-half{grid-column:span 1}}
+@media(max-width:600px){.bento{grid-template-columns:1fr}.c-3,.c-2,.c-4,.c-half,.c-6{grid-column:span 1}}
+.viz{width:100%;margin-top:auto;border-radius:14px;background:#0a0a0b;border:1px solid var(--line);padding:18px;position:relative;overflow:hidden}
+
+/* waveform */
+.wave{display:flex;align-items:center;gap:2px;height:70px}
+.wave i{flex:1;background:#3a3a40;border-radius:2px;min-width:0;transition:background .3s,opacity .5s,flex .8s cubic-bezier(.7,0,.2,1),margin .8s}
+.wave i.speech{background:var(--fg)}
+.wave i.sil{background:rgba(255,61,90,.55);height:4px!important}
+.wave.cut i.sil{flex:0;opacity:0;margin:0 -1px}
+.wave-legend{display:flex;justify-content:space-between;margin-top:12px;font-size:12px;font-weight:700;color:var(--mute)}
+.wave-legend b{color:var(--acc)}
+
+/* reframe */
+.reframe{position:relative;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#1b1714,#0b0a09)}
+.reframe .p{position:absolute;bottom:0;width:30%}
+.reframe .p1{left:12%}.reframe .p2{right:12%}
+.reframe .crop{position:absolute;top:0;bottom:0;width:31.6%;border:2px solid var(--acc);border-radius:6px;box-shadow:0 0 0 999px rgba(0,0,0,.6);left:10%;animation:follow 7s cubic-bezier(.7,0,.2,1) infinite}
+.reframe .crop span{position:absolute;top:6px;left:6px;font-size:9px;font-weight:800;letter-spacing:.08em;background:var(--acc);color:var(--acc-ink);padding:2px 6px;border-radius:4px}
+@keyframes follow{0%,40%{left:11%}50%,90%{left:57.4%}100%{left:11%}}
+.speaking{position:absolute;bottom:10px;right:10px;z-index:2;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:99px;font-size:10px;font-weight:700;color:var(--mute);display:flex;gap:6px;align-items:center}
+.eq{display:flex;gap:2px;align-items:flex-end;height:12px}.eq i{width:3px;background:var(--acc);animation:eq .6s ease-in-out infinite alternate}
+.eq i:nth-child(2){animation-delay:-.2s}.eq i:nth-child(3){animation-delay:-.4s}
+@keyframes eq{from{height:3px}to{height:12px}}
+
+/* transcript */
+.tx{font-size:14px;line-height:2;color:var(--dim);font-weight:600}
+.tx .t{color:var(--mute);font-variant-numeric:tabular-nums;font-size:11px;margin-right:6px;font-weight:700}
+.tx .w{transition:color .2s}
+.tx .w.done{color:var(--fg)}
+.tx .w.now{color:var(--acc-ink);background:var(--acc);border-radius:4px;padding:0 3px}
+.tx .blur{filter:blur(4px);background:rgba(255,255,255,.08);border-radius:4px}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.chip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:99px;border:1px solid var(--line2);color:var(--mute)}
+
+/* timeline */
+.tl{display:grid;gap:7px;font-size:10px;font-weight:800;letter-spacing:.08em}
+.lane{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:10px}
+.lane > span{color:var(--dim)}
+.lane .bar{position:relative;height:22px;background:rgba(255,255,255,.03);border-radius:6px}
+.blk{position:absolute;top:0;bottom:0;border-radius:5px;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;font-size:9px;color:#000;transform-origin:left;animation:grow .8s cubic-bezier(.2,.8,.2,1) both}
+@keyframes grow{from{transform:scaleX(0);opacity:0}}
+.playhead{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--acc);left:72px;box-shadow:0 0 12px var(--acc);animation:ph 8s linear infinite;z-index:3}
+.playhead::before{content:"";position:absolute;top:-4px;left:-5px;width:12px;height:8px;background:var(--acc);clip-path:polygon(0 0,100% 0,50% 100%)}
+@keyframes ph{from{left:72px}to{left:100%}}
+
+/* transitions viewer */
+.fxview{position:relative;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:
+  radial-gradient(50% 60% at 30% 40%,#3b2a1f,transparent),radial-gradient(40% 50% at 75% 70%,#16243f,transparent),#0d0c0b}
+.fxview .fxlabel{position:absolute;left:12px;bottom:10px;z-index:5;font-family:var(--display);font-size:26px;text-transform:uppercase;letter-spacing:.02em;text-shadow:0 2px 10px #000}
+.fxlayer{position:absolute;inset:0;opacity:0;z-index:2}
+.fxview[data-fx="flash"] .l-flash{animation:fx-flash 1.6s ease-out infinite}
+@keyframes fx-flash{0%,100%{opacity:0}8%{opacity:.95}}
+.l-flash{background:#fff}
+.l-burn{background:radial-gradient(circle at 50% 50%,#fff6dd 0,#ffb13b 18%,#c21500 40%,transparent 62%);mix-blend-mode:screen;filter:blur(6px)}
+.fxview[data-fx="burn"] .l-burn{animation:fx-burn 1.8s ease-in-out infinite}
+@keyframes fx-burn{0%{opacity:0;transform:translateX(-80%) scale(1.4)}40%{opacity:1}100%{opacity:0;transform:translateX(80%) scale(2)}}
+.l-leak{background:radial-gradient(60% 80% at 10% 100%,rgba(255,128,38,.95),transparent 70%),radial-gradient(50% 70% at 100% 0,rgba(255,56,102,.85),transparent 70%);mix-blend-mode:screen}
+.fxview[data-fx="leak"] .l-leak{animation:fx-fade 1.8s ease-in-out infinite}
+@keyframes fx-fade{0%,100%{opacity:0}45%{opacity:1}}
+.l-vhs{background:repeating-linear-gradient(0deg,rgba(255,255,255,.12) 0 1px,transparent 1px 3px)}
+.l-vhs::after{content:"";position:absolute;left:0;right:0;height:18%;background:rgba(255,255,255,.35);filter:blur(4px);animation:roll 1.2s linear infinite}
+@keyframes roll{from{top:110%}to{top:-20%}}
+.fxview[data-fx="vhs"] .l-vhs{opacity:1}
+.l-glitch{background:linear-gradient(transparent 20%,rgba(255,0,140,.6) 20% 26%,transparent 26% 52%,rgba(0,220,255,.6) 52% 57%,transparent 57% 78%,rgba(228,255,58,.5) 78% 81%,transparent 81%)}
+.fxview[data-fx="glitch"] .l-glitch{animation:fx-glitch .35s steps(2) infinite}
+@keyframes fx-glitch{0%{opacity:1;transform:translateX(-6px)}50%{opacity:.2;transform:translateX(8px) scaleY(1.4)}100%{opacity:1;transform:none}}
+.l-bokeh{background:
+  radial-gradient(circle at 20% 70%,rgba(255,210,128,.75) 0 6%,transparent 7%),radial-gradient(circle at 45% 30%,rgba(255,210,128,.5) 0 9%,transparent 10%),
+  radial-gradient(circle at 75% 60%,rgba(255,210,128,.6) 0 5%,transparent 6%),radial-gradient(circle at 85% 20%,rgba(255,210,128,.45) 0 8%,transparent 9%),
+  radial-gradient(circle at 60% 85%,rgba(255,210,128,.55) 0 7%,transparent 8%);filter:blur(3px);mix-blend-mode:screen}
+.fxview[data-fx="bokeh"] .l-bokeh{animation:fx-bokeh 2s ease-in-out infinite}
+@keyframes fx-bokeh{0%{opacity:0;transform:translateY(20px)}50%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+.l-strobe{background:#fff}
+.fxview[data-fx="strobe"] .l-strobe{animation:fx-strobe .25s steps(1) infinite}
+@keyframes fx-strobe{0%{opacity:.85}50%{opacity:0}}
+.fxview[data-fx="rgb"] .l-rgb{animation:fx-rgb 1.2s steps(1) infinite;mix-blend-mode:screen}
+@keyframes fx-rgb{0%{opacity:.55;background:#ff1a40}33%{opacity:.55;background:#1aff73}66%{opacity:.55;background:#3366ff}}
+.l-shine{background:linear-gradient(110deg,transparent 35%,rgba(255,255,255,.85) 50%,transparent 65%);background-size:300% 100%}
+.fxview[data-fx="shine"] .l-shine{opacity:1;animation:fx-shine 1.4s ease-in-out infinite}
+@keyframes fx-shine{from{background-position:120% 0}to{background-position:-20% 0}}
+.l-dip{background:#000}
+.fxview[data-fx="dip"] .l-dip{animation:fx-fade 1.8s ease-in-out infinite}
+.fxchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.fxchips button{font:inherit;font-size:11px;font-weight:700;padding:6px 10px;border-radius:99px;border:1px solid var(--line2);background:transparent;color:var(--mute);cursor:pointer;transition:.2s}
+.fxchips button.on,.fxchips button:hover{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+
+/* export */
+.exp{width:100%;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:22px}
+.exp div{border:1px solid var(--line);border-radius:14px;padding:16px 14px;background:#0a0a0b}
+.exp b{display:block;font-family:var(--display);font-weight:400;font-size:34px;line-height:1;letter-spacing:.01em}
+.exp span{font-size:12px;color:var(--mute);font-weight:600}
+@media(max-width:600px){.exp{grid-template-columns:1fr 1fr}.hero h1{font-size:15.5vw}.float{display:none}.lane{grid-template-columns:52px 1fr;gap:6px}.lane>span{font-size:8px}.playhead{left:58px}@keyframes ph{from{left:58px}to{left:100%}}.blk{font-size:0}}
+
+/* sound */
+.sounds{width:100%;display:grid;gap:8px;margin-top:auto}
+.snd{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:#0a0a0b;border:1px solid var(--line)}
+.snd .ico{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.snd b{font-size:13px}.snd small{display:block;color:var(--mute);font-size:11px;font-weight:600}
+.snd .mini{margin-left:auto;display:flex;gap:2px;align-items:center;height:20px}
+.snd .mini i{width:2px;background:var(--dim);border-radius:2px}
+
+/* steps */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;counter-reset:s}
+.step{padding:30px;border-radius:var(--r);border:1px solid var(--line);background:linear-gradient(180deg,var(--card),transparent);position:relative}
+.step .n{font-family:var(--display);font-size:84px;line-height:.8;color:transparent;-webkit-text-stroke:1.5px var(--line2);margin-bottom:28px}
+.step h3{font-size:22px;margin-bottom:8px}
+.step p{color:var(--mute);font-size:15px}
+.step:hover .n{-webkit-text-stroke-color:var(--acc)}
+@media(max-width:860px){.steps{grid-template-columns:1fr}}
+
+/* privacy band */
+.band{position:relative;border-radius:32px;overflow:hidden;padding:72px 56px;background:var(--acc);color:var(--acc-ink);display:grid;grid-template-columns:1.3fr 1fr;gap:40px;align-items:center}
+.band h2{font-size:clamp(40px,6vw,84px)}
+.band p{font-size:17px;font-weight:600;opacity:.8;max-width:46ch;margin-top:18px}
+.band ul{list-style:none;display:grid;gap:12px}
+.band li{display:flex;gap:14px;align-items:flex-start;background:rgba(0,0,0,.06);border:1px solid rgba(0,0,0,.1);padding:16px 18px;border-radius:16px;font-weight:700;font-size:15px}
+.band li small{display:block;font-weight:600;opacity:.65;font-size:13px;margin-top:2px}
+.band li svg{flex:none;margin-top:2px}
+.band .big-logo{position:absolute;right:-60px;bottom:-80px;width:340px;opacity:.07;pointer-events:none}
+@media(max-width:860px){.band{grid-template-columns:1fr;padding:48px 26px}}
+
+/* download */
+.dl{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.dl>*,.faq>*,.hero-grid>*,.band>*{min-width:0}
+@media(max-width:860px){.dl{grid-template-columns:1fr}.dl-main,.install{padding:26px}}
+.dl-main{padding:40px;border-radius:var(--r);border:1px solid var(--line2);background:radial-gradient(120% 80% at 0% 0%,rgba(228,255,58,.12),transparent 60%),var(--card);display:flex;flex-direction:column;gap:26px}
+.dl-app{display:flex;gap:18px;align-items:center}
+.dl-app img{width:76px;height:76px;border-radius:20px;box-shadow:0 0 0 1px var(--line2),0 20px 40px -10px #000}
+.dl-app h3{font-size:28px}
+.dl-app p{color:var(--mute);font-size:14px;font-weight:600}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.specs div{background:#0b0b0c;padding:14px 16px}
+.specs dt{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700}
+.specs dd{font-size:14px;font-weight:700;margin-top:3px}
+.hash{display:flex;align-items:center;gap:10px;background:#0b0b0c;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11.5px;color:var(--mute)}
+.hash code{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}
+.hash button{font:600 11px var(--sans);border:1px solid var(--line2);background:transparent;color:var(--fg);border-radius:8px;padding:6px 10px;cursor:pointer;flex:none}
+.hash button:hover{border-color:var(--acc);color:var(--acc)}
+.install{padding:40px;border-radius:var(--r);border:1px solid var(--line);background:var(--card)}
+.install h3{font-size:22px;margin-bottom:6px}
+.install > p{color:var(--mute);font-size:14px;margin-bottom:22px}
+.install ol{list-style:none;display:grid;gap:4px;counter-reset:i}
+.install li{counter-increment:i;display:grid;grid-template-columns:38px 1fr;gap:14px;padding:14px 0;border-top:1px solid var(--line)}
+.install li::before{content:counter(i,decimal-leading-zero);font-family:var(--display);font-size:22px;color:var(--acc);line-height:1.1}
+.install li b{display:block;font-size:15px}
+.install li span{color:var(--mute);font-size:14px}
+.note{margin-top:18px;font-size:13px;color:var(--mute);padding:14px 16px;border-radius:12px;border:1px dashed var(--line2)}
+
+/* faq */
+.faq{display:grid;grid-template-columns:.8fr 1.2fr;gap:56px}
+@media(max-width:860px){.faq{grid-template-columns:1fr}}
+details{border-bottom:1px solid var(--line);padding:4px 0}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;padding:20px 0;font-weight:700;font-size:17px}
+summary::-webkit-details-marker{display:none}
+summary .pm{width:30px;height:30px;border-radius:50%;border:1px solid var(--line2);display:grid;place-items:center;flex:none;transition:transform .3s,background .3s}
+details[open] summary .pm{transform:rotate(45deg);background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+details .ans{color:var(--mute);padding:0 50px 22px 0;font-size:15px}
+
+/* final */
+.final{text-align:center;padding:140px 0 120px;overflow:hidden}
+.final h2{font-size:clamp(54px,11vw,170px);line-height:.92;margin:20px 0 34px}
+.final h2 .out{color:transparent;-webkit-text-stroke:2px var(--fg)}
+.final .lead{margin:0 auto 36px}
+footer{border-top:1px solid var(--line);padding:30px 0 40px;color:var(--dim);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(28px);transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1)}
+.rv.in{opacity:1;transform:none}
+.d1{transition-delay:.08s}.d2{transition-delay:.16s}.d3{transition-delay:.24s}
+
+.toast{position:fixed;left:50%;bottom:28px;transform:translate(-50%,40px);opacity:0;z-index:200;background:var(--fg);color:#000;font-weight:700;font-size:14px;padding:12px 18px;border-radius:99px;transition:.35s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.rv{opacity:1;transform:none}.hero h1 .hl::before{transform:skew(-6deg)}}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <symbol id="i-android" viewBox="0 0 24 24"><path fill="currentColor" d="M17.6 9.48 19.44 6.3a.38.38 0 0 0-.66-.38l-1.86 3.22a11.4 11.4 0 0 0-9.84 0L5.22 5.92a.38.38 0 1 0-.66.38L6.4 9.48A10.8 10.8 0 0 0 1 18h22a10.8 10.8 0 0 0-5.4-8.52ZM7 15.25a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Zm10 0a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5Z"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></g></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+    <symbol id="person" viewBox="0 0 200 240"><defs><linearGradient id="sk" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#d9a37c"/><stop offset="1" stop-color="#7a4b33"/></linearGradient><linearGradient id="sh" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#262a33"/><stop offset="1" stop-color="#0d0f13"/></linearGradient></defs><path d="M10 240c4-58 38-86 90-86s86 28 90 86z" fill="url(#sh)"/><rect x="84" y="118" width="32" height="42" rx="12" fill="#8a573b"/><ellipse cx="100" cy="86" rx="40" ry="48" fill="url(#sk)"/><path d="M58 80c0-34 20-50 44-50s42 14 40 46c-8-16-20-22-42-22-20 0-32 10-42 26z" fill="#17110d"/></symbol>
+  </defs>
+</svg>
+
+<!-- NAV -->
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a href="#top" class="brand"><img src="assets/logo.svg" alt="">jarecut</a>
+    <nav class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="#privacy">Privacy</a>
+      <a href="#download">Install</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-acc" href="Jarecut.apk" download data-dl><svg width="16" height="16"><use href="#i-dl"/></svg>Get the APK</a>
+  </div>
+</header>
+
+<main id="top">
+<!-- HERO -->
+<section class="hero">
+  <div class="grid-bg"></div>
+  <div class="glow"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <span class="pill rv"><b>NEW</b>Version 1.0 for Android is here</span>
+      <h1 class="rv d1">
+        <span class="line">Long video in.</span>
+        <span class="line"><span class="hl">Viral</span> <span class="out">clips</span></span>
+        <span class="line">out.</span>
+      </h1>
+      <p class="lead rv d2">Jarecut is an AI clip editor that runs <strong style="color:var(--fg)">entirely on your phone</strong>. It cuts the dead air, writes the captions, follows whoever is speaking and drops in B-roll, music and sound effects. Then it exports a ready-to-post 9:16 short.</p>
+      <div class="cta-row rv d3">
+        <a class="btn btn-acc btn-big" href="Jarecut.apk" download data-dl>
+          <span class="ic"><svg width="18" height="18"><use href="#i-android"/></svg></span>
+          <span class="stack">Download for Android<small>APK · 176 MB · v1.0</small></span>
+        </a>
+        <a class="btn" href="#features">See what it does</a>
+      </div>
+      <p class="os-hint" id="osHint">You're on a computer. Open this page on your Android phone to install, or download here and copy the APK across.</p>
+      <div class="meta rv d3">
+        <span><svg width="16" height="16"><use href="#i-check"/></svg>Offline captions</span>
+        <span><svg width="16" height="16"><use href="#i-check"/></svg>No uploads</span>
+        <span><svg width="16" height="16"><use href="#i-check"/></svg>Up to 4K · 60 fps</span>
+        <span><svg width="16" height="16"><use href="#i-check"/></svg>5-day free trial</span>
+      </div>
+    </div>
+
+    <div class="phone-stage rv d2">
+      <div class="float f1"><span class="dot" style="background:rgba(255,61,90,.15);color:#ff5a74"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M4 12h3m10 0h3M9 8v8m6-8v8" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></span><span>Silence cut<small>14 pauses removed</small></span></div>
+      <div class="float f2"><span class="dot" style="background:rgba(228,255,58,.14);color:var(--acc)"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Zm-7 9a7 7 0 0 0 14 0M12 19v2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>Captions ready<small>on-device · word timing</small></span></div>
+      <div class="float f3"><span class="dot" style="background:rgba(61,123,255,.16);color:#7aa4ff"><svg width="16" height="16" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="m16 10 5-3v10l-5-3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg></span><span>B-roll inserted<small>matched from captions</small></span></div>
+
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="scene">
+            <div class="shelf"></div><div class="lamp"></div>
+            <svg class="person" viewBox="0 0 200 240"><use href="#person"/></svg>
+            <svg class="mic" viewBox="0 0 40 60"><rect x="12" y="0" width="16" height="30" rx="8" fill="#2b2b30"/><rect x="18" y="30" width="4" height="30" fill="#1b1b1f"/></svg>
+          </div>
+          <div class="facebox"><i></i><i></i><i></i><i></i><span>FOLLOWING · SPEAKER 1</span></div>
+          <div class="ui-top"><span class="rec">AUTO EDIT</span><span class="res">1080×1920 · 60</span></div>
+          <div class="hook">Nobody tells you this 👀</div>
+          <div class="caption" id="cap"></div>
+          <div class="handle">@YOURCHANNEL</div>
+          <div class="progress"><i></i></div>
+          <div class="fx-flash" id="flash"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAPTION STYLE MARQUEE -->
+<div class="marquee" aria-label="Caption styles">
+  <div class="track" id="track">
+    <span class="cs cs-glow">Glow Aesthetic</span><i class="cs-sep"></i>
+    <span class="cs cs-pop">Bold Pop</span><i class="cs-sep"></i>
+    <span class="cs cs-bluebox">Blue <b>Box</b></span><i class="cs-sep"></i>
+    <span class="cs cs-comic">3D Comic</span><i class="cs-sep"></i>
+    <span class="cs cs-blackbox">BLACK BOX</span><i class="cs-sep"></i>
+    <span class="cs cs-gold">Gold Glow</span><i class="cs-sep"></i>
+    <span class="cs cs-greenbox">Green <b>Box</b></span><i class="cs-sep"></i>
+    <span class="cs cs-hl">Highlight <b>Word</b></span><i class="cs-sep"></i>
+    <span class="cs cs-grad">Gradient</span><i class="cs-sep"></i>
+    <span class="cs cs-classic">Basic Classic</span><i class="cs-sep"></i>
+    <span class="cs cs-blueglow">Blue Glow</span><i class="cs-sep"></i>
+    <span class="cs cs-marker">Drop Word</span><i class="cs-sep"></i>
+  </div>
+</div>
+
+<!-- FEATURES -->
+<section class="sec" id="features">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="rv"><span class="kicker">The auto editor</span><h2>One tap does the <span class="acc">boring</span> part.</h2></div>
+      <p class="lead rv d1">Import a podcast, a vlog or a talking-head recording. Tap <strong style="color:var(--fg)">Auto</strong> and Jarecut builds the edit for you. Then fine-tune any piece of it on a proper multi-track timeline.</p>
+    </div>
+
+    <div class="bento">
+      <!-- silence -->
+      <article class="card c-3 rv">
+        <span class="tag">Auto-cut silence</span>
+        <h3>Jump cuts without the busywork</h3>
+        <p>Jarecut finds every pause and cuts it so the clip goes straight from one sentence to the next. You choose how tight it gets, from a gentle 0.8 s to a snappy 0.25 s.</p>
+        <div class="viz">
+          <div class="wave" id="wave"></div>
+          <div class="wave-legend"><span id="waveState">Analyzing audio…</span><b id="waveSaved"></b></div>
+        </div>
+      </article>
+
+      <!-- face tracking -->
+      <article class="card c-3 rv d1">
+        <span class="tag">Speaker tracking</span>
+        <h3>16:9 podcast to 9:16 short</h3>
+        <p>Jarecut finds the faces in a wide shot and keeps whoever is talking centred in the vertical frame. You can also tap one person to lock the frame on them.</p>
+        <div class="viz">
+          <div class="reframe">
+            <svg class="p p1" viewBox="0 0 200 240"><use href="#person"/></svg>
+            <svg class="p p2" viewBox="0 0 200 240" style="filter:hue-rotate(160deg) brightness(.9)"><use href="#person"/></svg>
+            <div class="crop"><span>9:16</span></div>
+            <div class="speaking"><span class="eq"><i></i><i></i><i></i></span>Following the speaker</div>
+          </div>
+        </div>
+      </article>
+
+      <!-- captions -->
+      <article class="card c-2 rv">
+        <span class="tag">Offline captions</span>
+        <h3>Captions with word-level timing</h3>
+        <p>NVIDIA's Parakeet speech model runs on the phone itself, so it works without a connection. Words you put on a list can be blurred or bleeped automatically.</p>
+        <div class="viz">
+          <div class="tx" id="tx"></div>
+          <div class="chip-row"><span class="chip">SRT / VTT import</span><span class="chip">Word-by-word reveal</span><span class="chip">ALL CAPS</span></div>
+        </div>
+      </article>
+
+      <!-- timeline -->
+      <article class="card c-4 rv d1">
+        <span class="tag">Auto edit</span>
+        <h3>B-roll, music and hook SFX in one pass</h3>
+        <p>Jarecut matches words in your captions to B-roll in your library, picks a background track that dips under speech and adds a hook sound at the start. It also places transition hits on every cut.</p>
+        <div class="viz" style="padding:22px 18px 18px">
+          <div class="tl" style="position:relative">
+            <div class="playhead"></div>
+            <div class="lane"><span>VIDEO</span><div class="bar">
+              <div class="blk" style="left:0;width:24%;background:#e9e9e6">clip 1</div>
+              <div class="blk" style="left:24.6%;width:31%;background:#e9e9e6;animation-delay:.1s">clip 2</div>
+              <div class="blk" style="left:56.2%;width:18%;background:#e9e9e6;animation-delay:.2s">clip 3</div>
+              <div class="blk" style="left:74.8%;width:25.2%;background:#e9e9e6;animation-delay:.3s">clip 4</div>
+            </div></div>
+            <div class="lane"><span>CAPTIONS</span><div class="bar">
+              <div class="blk" style="left:2%;width:14%;background:var(--acc);animation-delay:.35s">NOBODY</div>
+              <div class="blk" style="left:17%;width:20%;background:var(--acc);animation-delay:.4s">TELLS YOU</div>
+              <div class="blk" style="left:38%;width:16%;background:var(--acc);animation-delay:.45s">THIS</div>
+              <div class="blk" style="left:57%;width:22%;background:var(--acc);animation-delay:.5s">ABOUT</div>
+              <div class="blk" style="left:80%;width:18%;background:var(--acc);animation-delay:.55s">MONEY</div>
+            </div></div>
+            <div class="lane"><span>B-ROLL</span><div class="bar">
+              <div class="blk" style="left:30%;width:14%;background:#7aa4ff;animation-delay:.6s">broll_03</div>
+              <div class="blk" style="left:79%;width:16%;background:#7aa4ff;animation-delay:.7s">cash.mp4</div>
+            </div></div>
+            <div class="lane"><span>SFX</span><div class="bar">
+              <div class="blk" style="left:0;width:6%;background:var(--pink);animation-delay:.75s">hook</div>
+              <div class="blk" style="left:30%;width:4%;background:#ff8fb8;animation-delay:.8s"></div>
+              <div class="blk" style="left:79%;width:4%;background:#ff8fb8;animation-delay:.85s"></div>
+            </div></div>
+            <div class="lane"><span>MUSIC</span><div class="bar">
+              <div class="blk" style="left:0;width:100%;background:linear-gradient(90deg,var(--green),#1fb862 85%,rgba(41,224,122,.2));animation-delay:.9s">bgm · ducks under speech · fades out</div>
+            </div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- transitions -->
+      <article class="card c-3 rv">
+        <span class="tag">10 GPU transitions</span>
+        <h3>Effects that hit on the cut</h3>
+        <p>Flash, film burn, light leak, VHS, glitch, bokeh, strobe, RGB flash, shine and dip to black. All of them are rendered on the GPU, and they can go on every clip automatically.</p>
+        <div class="viz">
+          <div class="fxview" id="fxview" data-fx="flash">
+            <svg viewBox="0 0 200 240" style="position:absolute;left:50%;bottom:0;width:40%;transform:translateX(-50%)"><use href="#person"/></svg>
+            <div class="fxlayer l-flash"></div><div class="fxlayer l-burn"></div><div class="fxlayer l-leak"></div><div class="fxlayer l-vhs"></div><div class="fxlayer l-glitch"></div>
+            <div class="fxlayer l-bokeh"></div><div class="fxlayer l-strobe"></div><div class="fxlayer l-rgb"></div><div class="fxlayer l-shine"></div><div class="fxlayer l-dip"></div>
+            <span class="fxlabel" id="fxlabel">Flash</span>
+          </div>
+          <div class="fxchips" id="fxchips"></div>
+        </div>
+      </article>
+
+      <!-- sound -->
+      <article class="card c-3 rv d1">
+        <span class="tag">Sound design</span>
+        <h3>Your sound library, used automatically</h3>
+        <p>Point Jarecut at your own folders of music, hook sounds, transition SFX and B-roll. Each time you tap Auto it picks a different mix.</p>
+        <div class="sounds">
+          <div class="snd"><span class="ico" style="background:rgba(41,224,122,.14);color:var(--green)"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm12-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" fill="none" stroke="currentColor" stroke-width="2"/></svg></span><span><b>Auto BGM</b><small>picks the best track · ducks under speech</small></span><span class="mini" data-mini></span></div>
+          <div class="snd"><span class="ico" style="background:rgba(255,61,139,.14);color:var(--pink)"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M13 2 4 14h7l-1 8 9-12h-7z" fill="currentColor"/></svg></span><span><b>Auto Hook SFX</b><small>a sound on the first spoken word</small></span><span class="mini" data-mini></span></div>
+          <div class="snd"><span class="ico" style="background:rgba(61,123,255,.16);color:#7aa4ff"><svg width="16" height="16" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span><b>Transition sounds</b><small>whooshes on every B-roll in and out</small></span><span class="mini" data-mini></span></div>
+        </div>
+      </article>
+
+      <!-- export -->
+      <article class="card c-6 rv">
+        <div style="width:100%;display:flex;justify-content:space-between;gap:30px;flex-wrap:wrap;align-items:flex-start">
+          <div style="max-width:520px"><span class="tag">Export</span><h3>Exports with audio in sync and no dropped frames</h3><p>Every frame is rendered one by one on the GPU and encoded to MP4 (H.264 + AAC). The finished video is saved straight to <em>Movies/jarecut</em> in your gallery and is ready to share.</p></div>
+          <div class="chip-row" style="margin-top:0"><span class="chip">9:16</span><span class="chip">1:1</span><span class="chip">4:5</span><span class="chip">16:9</span><span class="chip">Split screen</span><span class="chip">Custom frames</span></div>
+        </div>
+        <div class="exp">
+          <div><b>4K</b><span>2160 × 3840 max</span></div>
+          <div><b>60<span style="font-size:.5em;color:var(--mute)"> FPS</span></b><span>extra smooth</span></div>
+          <div><b>H.264</b><span>MP4 + AAC audio</span></div>
+          <div><b class="acc">0 MB</b><span>uploaded to any server</span></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="sec" id="how" style="padding-top:40px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="rv"><span class="kicker">How it works</span><h2>Three taps to a finished short.</h2></div>
+    </div>
+    <div class="steps">
+      <div class="step rv"><div class="n">01</div><h3>Import a video</h3><p>Pick any long recording from your gallery: a podcast, an interview, a stream VOD or a talking-head clip.</p></div>
+      <div class="step rv d1"><div class="n">02</div><h3>Tap Auto</h3><p>Jarecut transcribes the audio, finds the hook lines, cuts the silences and adds captions, B-roll, music and SFX.</p></div>
+      <div class="step rv d2"><div class="n">03</div><h3>Tweak and export</h3><p>Pick a caption style, adjust anything on the timeline and export in up to 4K at 60 fps.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRIVACY -->
+<section class="sec" id="privacy" style="padding-top:40px">
+  <div class="wrap">
+    <div class="band rv">
+      
+      <div>
+        <span class="kicker" style="color:var(--acc-ink)">Private by design</span>
+        <h2 style="margin-top:14px">Your video never leaves your phone.</h2>
+        <p>Jarecut has no cloud renderer and no upload queue. Speech recognition, face tracking and rendering all run on your phone's own processor.</p>
+      </div>
+      <ul>
+        <li><svg width="20" height="20"><use href="#i-lock"/></svg><span>Offline transcription<small>The Parakeet model is downloaded once (≈670 MB) and stored inside the app</small></span></li>
+        <li><svg width="20" height="20"><use href="#i-lock"/></svg><span>On-device face detection<small>Faces are tracked locally. No frames are ever sent anywhere</small></span></li>
+        <li><svg width="20" height="20"><use href="#i-lock"/></svg><span>Saved to your gallery<small>Finished clips go straight to Movies/jarecut</small></span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- DOWNLOAD -->
+<section class="sec" id="download" style="padding-top:40px">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="rv"><span class="kicker">Download</span><h2>Install in under a minute.</h2></div>
+      <p class="lead rv d1">Jarecut is distributed as an APK, so you install it directly instead of through the Play Store. Here's how.</p>
+    </div>
+    <div class="dl">
+      <div class="dl-main rv">
+        <div class="dl-app">
+          <img src="assets/logo.svg" alt="Jarecut icon">
+          <div><h3>jarecut</h3><p>AI auto-clipper &amp; short-form video editor</p></div>
+        </div>
+        <a class="btn btn-acc btn-big" href="Jarecut.apk" download data-dl style="align-self:flex-start">
+          <span class="ic"><svg width="18" height="18"><use href="#i-dl"/></svg></span>
+          <span class="stack">Download Jarecut.apk<small>176 MB · version 1.0</small></span>
+        </a>
+        <dl class="specs">
+          <div><dt>Version</dt><dd>1.0 (build 1)</dd></div>
+          <div><dt>File size</dt><dd>175.6 MB</dd></div>
+          <div><dt>Requires</dt><dd>Android 10 or newer</dd></div>
+          <div><dt>Built for</dt><dd>Android 15 (API 35)</dd></div>
+          <div><dt>CPU</dt><dd>arm64 · armv7 · x86_64</dd></div>
+          <div><dt>Package</dt><dd style="font-size:12.5px">com.jare.autoclipper</dd></div>
+        </dl>
+        <div>
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);font-weight:700;margin-bottom:8px">SHA-256 checksum</div>
+          <div class="hash"><code id="sha">0dc46db4e59631e1d149689a3e4b4f632c760726a8f23ad5766831023674e956</code><button type="button" id="copySha">Copy</button></div>
+        </div>
+      </div>
+
+      <div class="install rv d1">
+        <h3>Installing the APK</h3>
+        <p>You only need to do this once. Updates install the same way.</p>
+        <ol>
+          <li><div><b>Download the file</b><span>Tap the download button on your Android phone. Chrome may ask you to confirm because it's an APK, so tap <em>Download anyway</em>.</span></div></li>
+          <li><div><b>Open it</b><span>Tap the finished download in the notification bar or in your Files app.</span></div></li>
+          <li><div><b>Allow this source</b><span>If Android asks, open <em>Settings → Install unknown apps</em> and allow your browser or Files app.</span></div></li>
+          <li><div><b>Install and sign in</b><span>Tap <em>Install</em>, open Jarecut and sign in with your jarecut account. Then download the speech model once from <em>Settings → Model &amp; assets</em>.</span></div></li>
+        </ol>
+        <div class="note">Tip: the first-time setup downloads about 670 MB (the speech model plus your music, SFX and B-roll pack). Use Wi-Fi and make sure you have a couple of GB free.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec" id="faq" style="padding-top:40px">
+  <div class="wrap faq">
+    <div class="rv"><span class="kicker">FAQ</span><h2 style="margin-top:16px">Questions, answered.</h2><p class="lead" style="margin-top:18px">Anything else? Ask whoever shared this page with you.</p></div>
+    <div class="rv d1">
+      <details open><summary>Is Jarecut free?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">You can start a 5-day free trial right inside the app, which includes a daily export allowance. Pro accounts get unlimited exports.</div></details>
+      <details><summary>Does it work offline?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">Editing, transcription, face tracking and rendering all run offline once the speech model is downloaded. You only need a connection to sign in and for a quick plan check when you export.</div></details>
+      <details><summary>Is my video uploaded anywhere?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">No. Your videos stay on your phone. Captions are created on the device, and finished clips are saved to your gallery under Movies/jarecut.</div></details>
+      <details><summary>Which phones are supported?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">Any phone running Android 10 or newer with an H.264 video encoder, which covers almost every modern phone. A recent mid-range or flagship phone with 6 GB+ of RAM gives the smoothest 4K exports.</div></details>
+      <details><summary>Why isn't it on the Play Store?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">Jarecut is distributed directly as an APK for now. Android will ask you to allow installs from your browser the first time. You can check that the file is genuine by comparing its SHA-256 checksum with the one shown above.</div></details>
+      <details><summary>Can I use my own music, sounds and B-roll?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">Yes. Pick a folder on your phone that contains <em>bgm</em>, <em>best hook</em>, <em>transitionsfx</em> and <em>broll</em> subfolders, and Auto BGM, Hook SFX and Auto B-roll will use your files.</div></details>
+      <details><summary>What video formats can I import?<span class="pm"><svg width="14" height="14"><use href="#i-plus"/></svg></span></summary><div class="ans">Standard MP4 (H.264) works best. If a video is stored only in Google Photos or Drive, download it to the phone first.</div></details>
+    </div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="final">
+  <div class="wrap">
+    <span class="kicker rv">Ready when you are</span>
+    <h2 class="rv d1">Stop editing.<br><span class="out">Start</span> <span class="acc">posting.</span></h2>
+    <p class="lead rv d2">Turn your next long recording into a stack of shorts before your coffee gets cold.</p>
+    <a class="btn btn-acc btn-big rv d3" href="Jarecut.apk" download data-dl>
+      <span class="ic"><svg width="18" height="18"><use href="#i-android"/></svg></span>
+      <span class="stack">Download for Android<small>Free trial · 176 MB</small></span>
+    </a>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a href="#top" class="brand" style="font-size:16px"><img src="assets/logo.svg" alt="" style="width:26px;height:26px;border-radius:7px">jarecut</a>
+    <span>Speech recognition powered by NVIDIA Parakeet TDT 0.6B · Runs with ONNX Runtime</span>
+    <span>© <span id="yr">2026</span> Jarecut</span>
+  </div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('#yr').textContent = new Date().getFullYear();
+
+  // nav
+  const nav = $('#nav');
+  const onScroll = () => nav.classList.toggle('scrolled', scrollY > 20);
+  addEventListener('scroll', onScroll, {passive:true}); onScroll();
+
+  // reveal
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), {threshold:.12, rootMargin:'0px 0px -40px 0px'});
+  $$('.rv').forEach(el => io.observe(el));
+
+  // toast
+  let tt; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('show'), 2400); };
+
+  // platform hint + download feedback
+  const isAndroid = /android/i.test(navigator.userAgent);
+  const isMobile = /iphone|ipad|ipod|android|mobile/i.test(navigator.userAgent);
+  if (!isMobile) $('#osHint').classList.add('show');
+  if (/iphone|ipad|ipod/i.test(navigator.userAgent)) { $('#osHint').textContent = 'Jarecut is Android-only for now. The APK won’t install on iPhone or iPad.'; $('#osHint').classList.add('show'); }
+  $$('[data-dl]').forEach(a => a.addEventListener('click', () => toast(isAndroid ? 'Downloading… open it from your notifications when it’s done' : 'Downloading Jarecut.apk (176 MB)')));
+
+  // copy sha
+  $('#copySha').addEventListener('click', async () => {
+    const v = $('#sha').textContent;
+    try { await navigator.clipboard.writeText(v); } catch { const r = document.createRange(); r.selectNodeContents($('#sha')); getSelection().removeAllRanges(); getSelection().addRange(r); document.execCommand('copy'); }
+    toast('Checksum copied');
+  });
+
+  // spotlight on cards
+  $$('.card').forEach(c => c.addEventListener('pointermove', e => {
+    const r = c.getBoundingClientRect(); c.style.setProperty('--mx', (e.clientX - r.left) + 'px'); c.style.setProperty('--my', (e.clientY - r.top) + 'px');
+  }));
+
+  // hero captions
+  const lines = [
+    ['NOBODY','TELLS','YOU','THIS'],
+    ['THIS','ONE','HABIT','CHANGED','EVERYTHING'],
+    ['STOP','EDITING','START','POSTING'],
+    ['WATCH','TILL','THE','END']
+  ];
+  const cap = $('#cap'), flash = $('#flash');
+  let li = 0;
+  const playLine = () => {
+    const words = lines[li % lines.length]; li++;
+    cap.innerHTML = words.map(w => `<span class="w">${w}</span>`).join(' ');
+    const ws = [...cap.children];
+    flash.classList.remove('go'); void flash.offsetWidth; flash.classList.add('go');
+    ws.forEach((w, i) => setTimeout(() => {
+      ws.forEach(x => x.classList.remove('on'));
+      w.classList.add('in', 'on');
+    }, 220 + i * 360));
+    setTimeout(playLine, 220 + words.length * 360 + 1100);
+  };
+  if (reduce) { cap.innerHTML = lines[0].map((w,i) => `<span class="w in ${i===3?'on':''}">${w}</span>`).join(' '); } else playLine();
+
+  // waveform silence cut
+  const wave = $('#wave');
+  const pattern = [];
+  let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  const segs = [[14,0],[4,1],[18,0],[6,1],[10,0],[3,1],[16,0],[5,1],[12,0]];
+  segs.forEach(([n, s]) => { for (let i = 0; i < n; i++) pattern.push(s); });
+  wave.innerHTML = pattern.map(s => `<i class="${s ? 'sil' : 'speech'}" style="height:${s ? 4 : Math.round(18 + rnd() * 82)}%"></i>`).join('');
+  const silCount = pattern.filter(Boolean).length;
+  const cycleWave = () => {
+    $('#waveState').textContent = 'Analyzing audio for silence…'; $('#waveSaved').textContent = '';
+    wave.classList.remove('cut');
+    setTimeout(() => { $('#waveState').textContent = '4 pauses found'; }, 1400);
+    setTimeout(() => { wave.classList.add('cut'); $('#waveState').textContent = 'Silence removed'; $('#waveSaved').textContent = `−${(silCount * 0.09).toFixed(1)} s dead air`; }, 2600);
+  };
+  const waveIO = new IntersectionObserver(es => { if (es[0].isIntersecting) { cycleWave(); setInterval(cycleWave, 7000); waveIO.disconnect(); } }, {threshold:.4});
+  waveIO.observe(wave);
+
+  // transcript karaoke
+  const tx = $('#tx');
+  const full = "So here's the thing nobody tells you about growing a channel. You don't need more ideas — you need to stop wasting the first three seconds. Seriously, it's a damn game changer.".split(' ');
+  const stamps = {0:'0:04', 11:'0:09', 19:'0:13'};
+  tx.innerHTML = full.map((w, i) => (stamps[i] ? `${i ? '<br>' : ''}<span class="t">${stamps[i]}</span>` : '') + `<span class="w ${w === 'damn' ? 'blur' : ''}">${w}</span>`).join(' ');
+  const tws = $$('#tx .w'); let ti = 0;
+  setInterval(() => {
+    if (ti >= tws.length) { tws.forEach(w => w.classList.remove('done', 'now')); ti = 0; return; }
+    tws.forEach(w => w.classList.remove('now'));
+    tws[ti].classList.add('now', 'done'); ti++;
+  }, reduce ? 99999 : 280);
+
+  // transitions
+  const fx = [['flash','Flash'],['burn','Film Burn'],['leak','Light Leak'],['vhs','VHS'],['glitch','Glitch'],['bokeh','Bokeh'],['strobe','Strobe'],['rgb','RGB Flash'],['shine','Shine'],['dip','Dip to Black']];
+  const fxv = $('#fxview'), fxl = $('#fxlabel'), chips = $('#fxchips');
+  chips.innerHTML = fx.map(([k, n]) => `<button type="button" data-k="${k}">${n}</button>`).join('');
+  let fi = 0, fxTimer;
+  const setFx = i => { fi = i; const [k, n] = fx[i]; fxv.dataset.fx = k; fxl.textContent = n; $$('#fxchips button').forEach((b, j) => b.classList.toggle('on', j === i)); };
+  const autoFx = () => { clearInterval(fxTimer); fxTimer = setInterval(() => setFx((fi + 1) % fx.length), 2200); };
+  chips.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; setFx(fx.findIndex(f => f[0] === b.dataset.k)); autoFx(); });
+  setFx(0); if (!reduce) autoFx();
+
+  // mini waveforms
+  $$('[data-mini]').forEach(m => { m.innerHTML = Array.from({length: 22}, () => `<i style="height:${Math.round(15 + rnd() * 85)}%"></i>`).join(''); });
+
+  // duplicate marquee for seamless loop
+  const track = $('#track'); track.innerHTML += track.innerHTML;
+})();
+</script>
+</body>
+</html>
