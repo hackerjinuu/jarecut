@@ -716,6 +716,28 @@ footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;
 <script>
 (() => {
   const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+
+  /* ---------- APK download location ----------
+     GitHub Pages can't serve files stored with Git LFS (it serves the tiny pointer file instead),
+     so the APK should be attached to a GitHub Release.
+     Leave APK_URL empty to auto-detect: on <user>.github.io/<repo>/ it becomes
+     https://github.com/<user>/<repo>/releases/latest/download/Jarecut.apk
+     Or paste any direct link here (Release asset, Cloudflare R2, Google Drive direct link, etc.). */
+  const APK_URL = 'https://github.com/hackerjinuu/jarecut/releases/latest/download/Jarecut.apk';
+  const APK_NAME = 'Jarecut.apk';
+  const resolveApk = () => {
+    if (APK_URL) return APK_URL;
+    const h = location.hostname;
+    if (h.endsWith('.github.io')) {
+      const user = h.replace('.github.io', '');
+      const seg = location.pathname.split('/').filter(Boolean)[0];
+      const repo = (seg && !seg.includes('.')) ? seg : h;   // project page or user page (<user>.github.io repo)
+      return `https://github.com/${user}/${repo}/releases/latest/download/${APK_NAME}`;
+    }
+    return APK_NAME; // local / other hosts: file next to index.html
+  };
+  const apkHref = resolveApk();
+  document.querySelectorAll('[data-dl]').forEach(a => { a.href = apkHref; if (/^https?:/.test(apkHref)) a.removeAttribute('download'); });
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   $('#yr').textContent = new Date().getFullYear();
 
